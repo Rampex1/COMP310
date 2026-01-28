@@ -31,7 +31,11 @@ int main(int argc, char *argv[]) {
         }
         // here you should check the unistd library 
         // so that you can find a way to not display $ in the batch mode
-        fgets(userInput, MAX_USER_INPUT-1, stdin);
+        if (fgets(userInput, MAX_USER_INPUT - 1, stdin) == NULL) {
+            // EOF reached
+            exit(0);
+        }
+
         errorCode = parseInput(userInput);
         if (errorCode == -1) exit(99);	// ignore all other errors
         memset(userInput, 0, sizeof(userInput));
