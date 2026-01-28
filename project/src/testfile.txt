@@ -1,0 +1,10 @@
+set x 10
+set y hello
+set name John
+echo x
+echo $x
+echo $y
+print name
+echo $name
+echo $nonexistent
+quit
