@@ -10,6 +10,10 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <errno.h>
 
 int MAX_ARGS_SIZE = 3;
 
@@ -34,6 +38,7 @@ int my_ls();
 int my_mkdir(char *dirname);
 int my_touch(char *filename);
 int my_cd(char *dirname);
+int run(char *args[], int args_size);
 int badcommandFileDoesNotExist();
 
 // Interpret commands and their arguments
@@ -100,6 +105,11 @@ int interpreter(char *command_args[], int args_size) {
         if (args_size != 2)
             return badcommand();
         return my_cd(command_args[1]);
+    
+    } else if (strcmp(command_args[0], "run") == 0) {
+        if (args_size < 2)  // run must have at least one argument
+            return badcommand();
+        return run(command_args, args_size);
 
     } else
         return badcommand();
@@ -292,6 +302,33 @@ int my_cd(char *dirname) {
     if (chdir(dirname) != 0) {
         printf("Bad command: my_cd\n");
         return 1;
+    }
+
+    return 0;
+}
+
+int run(char *args[], int args_size) {
+    pid_t pid = fork();
+
+    if (pid < 0) {
+        perror("fork");
+        return 1;
+    }
+    else if (pid == 0) {
+        char *cmd_args[args_size];
+        for (int i = 1; i < args_size; i++) {
+            cmd_args[i - 1] = args[i];
+        }
+        cmd_args[args_size - 1] = NULL;
+
+        execvp(cmd_args[0], cmd_args);
+
+        perror("execvp");
+        _exit(1);
+    }
+    else {
+        int status;
+        waitpid(pid, &status, 0);  // wait for child to finish
     }
 
     return 0;
