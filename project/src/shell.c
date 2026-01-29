@@ -26,12 +26,12 @@ int main(int argc, char *argv[]) {
     //init shell memory
     mem_init();
     while(1) {							
+        // ---------- 1.2.2: Enhance batch mode execution --------------
         if (interactive) {
             printf("%c ", prompt);
         }
         // here you should check the unistd library 
         // so that you can find a way to not display $ in the batch mode
-        // ---------- 1.2.2: Enhance batch mode execution --------------
         if (fgets(userInput, MAX_USER_INPUT - 1, stdin) == NULL) {
             // EOF reached
             exit(0);
