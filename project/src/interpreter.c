@@ -3,6 +3,7 @@
 #include <string.h>
 #include "shellmemory.h"
 #include "shell.h"
+#include <dirent.h>
 
 int MAX_ARGS_SIZE = 3;
 
@@ -23,6 +24,7 @@ int set(char *var, char *value);
 int print(char *var);
 int source(char *script);
 int echo(char *var);
+int my_ls();
 int badcommandFileDoesNotExist();
 
 // Interpret commands and their arguments
@@ -69,6 +71,11 @@ int interpreter(char *command_args[], int args_size) {
         if (args_size != 2) 
             return badcommand();
         return echo(command_args[1]);
+
+    } else if (strcmp(command_args[0], "my_ls") == 0) {
+        if (args_size != 1)
+            return badcommand();
+        return my_ls();
 
     } else
         return badcommand();
@@ -149,5 +156,39 @@ int echo(char *var) {
     } else {
         printf("%s\n", var);
     }
+    return 0;
+}
+
+int cmpstringp(const void *p1, const void *p2) {
+    char *const *s1 = p1;
+    char *const *s2 = p2;
+    return strcmp(*s1, *s2);
+}
+
+int my_ls() {
+    struct dirent *entry;
+    DIR *dp = opendir(".");
+
+    if (dp == NULL) {
+        perror("opendir");
+        return 1;
+    }
+
+    char *names[1024];
+    int count = 0;
+
+    while ((entry = readdir(dp)) != NULL) {
+        names[count++] = strdup(entry->d_name);
+    }
+
+    closedir(dp);
+
+    qsort(names, count, sizeof(char *), cmpstringp);
+
+    for (int i = 0; i < count; i++) {
+        printf("%s\n", names[i]);
+        free(names[i]);
+    }
+
     return 0;
 }
