@@ -4,6 +4,12 @@
 #include "shellmemory.h"
 #include "shell.h"
 #include <dirent.h>
+#include <sys/stat.h>
+#include <ctype.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <ctype.h>
+#include <sys/stat.h>
 
 int MAX_ARGS_SIZE = 3;
 
@@ -25,6 +31,9 @@ int print(char *var);
 int source(char *script);
 int echo(char *var);
 int my_ls();
+int my_mkdir(char *dirname);
+int my_touch(char *filename);
+int my_cd(char *dirname);
 int badcommandFileDoesNotExist();
 
 // Interpret commands and their arguments
@@ -76,6 +85,21 @@ int interpreter(char *command_args[], int args_size) {
         if (args_size != 1)
             return badcommand();
         return my_ls();
+
+    } else if (strcmp(command_args[0], "my_mkdir") == 0) {
+        if (args_size != 2)
+          return badcommand();
+        return my_mkdir(command_args[1]);
+
+    } else if (strcmp(command_args[0], "my_touch") == 0) {
+        if (args_size != 2)
+            return badcommand();
+        return my_touch(command_args[1]);
+
+    } else if (strcmp(command_args[0], "my_cd") == 0) {
+        if (args_size != 2)
+            return badcommand();
+        return my_cd(command_args[1]);
 
     } else
         return badcommand();
@@ -188,6 +212,86 @@ int my_ls() {
     for (int i = 0; i < count; i++) {
         printf("%s\n", names[i]);
         free(names[i]);
+    }
+
+    return 0;
+}
+
+int is_alphanumeric_string(char *s) {
+    if (s == NULL || strlen(s) == 0) return 0;
+
+    for (int i = 0; s[i]; i++) {
+        if (!isalnum(s[i])) return 0;
+    }
+    return 1;
+}
+
+int my_mkdir(char *dirname) {
+    char final_name[256];
+
+    if (dirname[0] == '$') {
+        // Variable case
+        char *varname = dirname + 1;
+        char *value = mem_get_value(varname);
+
+        if (strcmp(value, "Variable does not exist") == 0 ||
+            !is_alphanumeric_string(value)) {
+            printf("Bad command: my_mkdir\n");
+            return 1;
+        }
+
+        strcpy(final_name, value);
+    } 
+    else {
+        // Normal name case
+        if (!is_alphanumeric_string(dirname)) {
+            printf("Bad command: my_mkdir\n");
+            return 1;
+        }
+
+        strcpy(final_name, dirname);
+    }
+
+    if (mkdir(final_name, 0777) != 0) {
+        printf("Bad command: my_mkdir\n");
+        return 1;
+    }
+
+    return 0;
+}
+
+int my_touch(char *filename) {
+    if (!is_alphanumeric_string(filename)) {
+        printf("Bad command: my_touch\n");
+        return 1;
+    }
+
+    int fd = open(filename, O_CREAT | O_WRONLY, 0666);
+    if (fd < 0) {
+        printf("Bad command: my_touch\n");
+        return 1;
+    }
+
+    close(fd);
+    return 0;
+}
+
+int my_cd(char *dirname) {
+    if (!is_alphanumeric_string(dirname)) {
+        printf("Bad command: my_cd\n");
+        return 1;
+    }
+
+    struct stat sb;
+
+    if (stat(dirname, &sb) != 0 || !S_ISDIR(sb.st_mode)) {
+        printf("Bad command: my_cd\n");
+        return 1;
+    }
+
+    if (chdir(dirname) != 0) {
+        printf("Bad command: my_cd\n");
+        return 1;
     }
 
     return 0;

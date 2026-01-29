@@ -1,2 +1,2 @@
-my_ls
+my_cd test
 quit
