@@ -31,6 +31,7 @@ int main(int argc, char *argv[]) {
         }
         // here you should check the unistd library 
         // so that you can find a way to not display $ in the batch mode
+        // ---------- 1.2.2: Enhance batch mode execution --------------
         if (fgets(userInput, MAX_USER_INPUT - 1, stdin) == NULL) {
             // EOF reached
             exit(0);
@@ -51,13 +52,14 @@ int wordEnding(char c) {
 }
 
 int parseInput(char inp[]) {
+    // ---------------- 1.2.4: One-liners --------------------
+    
     char *commands[10];    // max 10 chained commands
-    int num_commands = 0;
+    int num_commands = 0;  // command pointer
 
-    // Split input by semicolon
+    // Split tokens by semicolon and whitespace
     char *token = strtok(inp, ";");
     while (token != NULL && num_commands < 10) {
-        // Skip leading spaces
         while (*token == ' ') token++;
         commands[num_commands++] = token;
         token = strtok(NULL, ";");
@@ -67,7 +69,6 @@ int parseInput(char inp[]) {
 
     // Execute each command sequentially
     for (int i = 0; i < num_commands; i++) {
-        // Now split command into words
         char tmp[200], *words[100];                            
         int ix = 0, w = 0;
         int wordlen;
@@ -89,10 +90,10 @@ int parseInput(char inp[]) {
 
         errorCode = interpreter(words, w);
 
-        // Free memory allocated by strdup
+        // Free memory
         for (int k = 0; k < w; k++) free(words[k]);
 
-        if (errorCode == -1) return -1;  // quit command
+        if (errorCode == -1) return -1; 
     }
 
     return errorCode;

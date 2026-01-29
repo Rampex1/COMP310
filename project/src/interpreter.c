@@ -107,7 +107,7 @@ int interpreter(char *command_args[], int args_size) {
         return my_cd(command_args[1]);
     
     } else if (strcmp(command_args[0], "run") == 0) {
-        if (args_size < 2)  // run must have at least one argument
+        if (args_size < 2)
             return badcommand();
         return run(command_args, args_size);
 
@@ -177,9 +177,11 @@ int source(char *script) {
     return errCode;
 }
 
+// --------------- 1.2.1: Add the echo command ---------------------------
 int echo(char *var) {
     if (var[0] == '$') {
-        char *var_name = var + 1;  // Skip $
+        // Case 1: Skip $ and look for variable
+        char *var_name = var + 1;
         char *value = mem_get_value(var_name);
         
         if (strcmp(value, "Variable does not exist") == 0) {
@@ -188,18 +190,22 @@ int echo(char *var) {
             printf("%s\n", value);
         }
     } else {
+        // Case 2: Print directly
         printf("%s\n", var);
     }
     return 0;
 }
 
+// ---------------- 1.2.3: my_ls --------------------
 int cmpstringp(const void *p1, const void *p2) {
+    """ Wrapper for qsort to compare two *char array elements"""
     char *const *s1 = p1;
     char *const *s2 = p2;
     return strcmp(*s1, *s2);
 }
 
 int my_ls() {
+    // Open current directory
     struct dirent *entry;
     DIR *dp = opendir(".");
 
@@ -211,12 +217,14 @@ int my_ls() {
     char *names[1024];
     int count = 0;
 
+    // Read all directories
     while ((entry = readdir(dp)) != NULL) {
         names[count++] = strdup(entry->d_name);
     }
 
     closedir(dp);
 
+    // Sort and print directories
     qsort(names, count, sizeof(char *), cmpstringp);
 
     for (int i = 0; i < count; i++) {
@@ -227,7 +235,9 @@ int my_ls() {
     return 0;
 }
 
+// ---------------- 1.2.3: my_mkdir --------------------
 int is_alphanumeric_string(char *s) {
+    """ Helper function that verifies string is alphanumeric """
     if (s == NULL || strlen(s) == 0) return 0;
 
     for (int i = 0; s[i]; i++) {
@@ -240,10 +250,11 @@ int my_mkdir(char *dirname) {
     char final_name[256];
 
     if (dirname[0] == '$') {
-        // Variable case
-        char *varname = dirname + 1;
+        // Case 1: Variable 
+        char *varname = dirname + 1; // Skip $
         char *value = mem_get_value(varname);
-
+        
+        // Check validity
         if (strcmp(value, "Variable does not exist") == 0 ||
             !is_alphanumeric_string(value)) {
             printf("Bad command: my_mkdir\n");
@@ -253,7 +264,7 @@ int my_mkdir(char *dirname) {
         strcpy(final_name, value);
     } 
     else {
-        // Normal name case
+        // Case 2: Literal value
         if (!is_alphanumeric_string(dirname)) {
             printf("Bad command: my_mkdir\n");
             return 1;
@@ -262,6 +273,7 @@ int my_mkdir(char *dirname) {
         strcpy(final_name, dirname);
     }
 
+    // Make directory
     if (mkdir(final_name, 0777) != 0) {
         printf("Bad command: my_mkdir\n");
         return 1;
@@ -270,12 +282,15 @@ int my_mkdir(char *dirname) {
     return 0;
 }
 
+// ---------------- 1.2.3: my_touch --------------------
 int my_touch(char *filename) {
+    // Check validity
     if (!is_alphanumeric_string(filename)) {
         printf("Bad command: my_touch\n");
         return 1;
     }
 
+    // Create file
     int fd = open(filename, O_CREAT | O_WRONLY, 0666);
     if (fd < 0) {
         printf("Bad command: my_touch\n");
@@ -286,7 +301,9 @@ int my_touch(char *filename) {
     return 0;
 }
 
+// ---------------- 1.2.3: my_cd --------------------
 int my_cd(char *dirname) {
+    // Verify validity
     if (!is_alphanumeric_string(dirname)) {
         printf("Bad command: my_cd\n");
         return 1;
@@ -294,11 +311,13 @@ int my_cd(char *dirname) {
 
     struct stat sb;
 
+    // Verify dir exists
     if (stat(dirname, &sb) != 0 || !S_ISDIR(sb.st_mode)) {
         printf("Bad command: my_cd\n");
         return 1;
     }
 
+    // Change directory
     if (chdir(dirname) != 0) {
         printf("Bad command: my_cd\n");
         return 1;
@@ -307,14 +326,18 @@ int my_cd(char *dirname) {
     return 0;
 }
 
+// ---------------- 1.2.5: run --------------------
 int run(char *args[], int args_size) {
+    // Fork new process
     pid_t pid = fork();
 
+    // Case 1: Error
     if (pid < 0) {
         perror("fork");
         return 1;
     }
     else if (pid == 0) {
+        // Case 2: Child process 
         char *cmd_args[args_size];
         for (int i = 1; i < args_size; i++) {
             cmd_args[i - 1] = args[i];
@@ -327,8 +350,9 @@ int run(char *args[], int args_size) {
         _exit(1);
     }
     else {
+        // Case 3: Parent process
         int status;
-        waitpid(pid, &status, 0);  // wait for child to finish
+        waitpid(pid, &status, 0); 
     }
 
     return 0;
