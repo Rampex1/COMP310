@@ -51,22 +51,49 @@ int wordEnding(char c) {
 }
 
 int parseInput(char inp[]) {
-    char tmp[200], *words[100];                            
-    int ix = 0, w = 0;
-    int wordlen;
-    int errorCode;
-    for (ix = 0; inp[ix] == ' ' && ix < 1000; ix++); // skip white spaces
-    while (inp[ix] != '\n' && inp[ix] != '\0' && ix < 1000) {
-        // extract a word
-        for (wordlen = 0; !wordEnding(inp[ix]) && ix < 1000; ix++, wordlen++) {
-            tmp[wordlen] = inp[ix];                        
-        }
-        tmp[wordlen] = '\0';
-        words[w] = strdup(tmp);
-        w++;
-        if (inp[ix] == '\0') break;
-        ix++; 
+    char *commands[10];    // max 10 chained commands
+    int num_commands = 0;
+
+    // Split input by semicolon
+    char *token = strtok(inp, ";");
+    while (token != NULL && num_commands < 10) {
+        // Skip leading spaces
+        while (*token == ' ') token++;
+        commands[num_commands++] = token;
+        token = strtok(NULL, ";");
     }
-    errorCode = interpreter(words, w);
+
+    int errorCode = 0;
+
+    // Execute each command sequentially
+    for (int i = 0; i < num_commands; i++) {
+        // Now split command into words
+        char tmp[200], *words[100];                            
+        int ix = 0, w = 0;
+        int wordlen;
+
+        char *cmd = commands[i];
+
+        for (ix = 0; cmd[ix] == ' ' && cmd[ix] != '\0'; ix++); // skip white spaces
+        while (cmd[ix] != '\0') {
+            // extract a word
+            for (wordlen = 0; !wordEnding(cmd[ix]) && cmd[ix] != '\0'; ix++, wordlen++) {
+                tmp[wordlen] = cmd[ix];                        
+            }
+            tmp[wordlen] = '\0';
+            words[w] = strdup(tmp);
+            w++;
+            if (cmd[ix] == '\0') break;
+            ix++; 
+        }
+
+        errorCode = interpreter(words, w);
+
+        // Free memory allocated by strdup
+        for (int k = 0; k < w; k++) free(words[k]);
+
+        if (errorCode == -1) return -1;  // quit command
+    }
+
     return errorCode;
 }
