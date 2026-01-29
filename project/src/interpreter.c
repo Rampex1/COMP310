@@ -198,7 +198,9 @@ int echo(char *var) {
 
 // ---------------- 1.2.3: my_ls --------------------
 int cmpstringp(const void *p1, const void *p2) {
-    """ Wrapper for qsort to compare two *char array elements"""
+    /* 
+     *   Wrapper for qsort to compare two *char array elements
+     */
     char *const *s1 = p1;
     char *const *s2 = p2;
     return strcmp(*s1, *s2);
@@ -237,7 +239,9 @@ int my_ls() {
 
 // ---------------- 1.2.3: my_mkdir --------------------
 int is_alphanumeric_string(char *s) {
-    """ Helper function that verifies string is alphanumeric """
+    /* 
+     * Helper function that verifies string is alphanumeric 
+     */
     if (s == NULL || strlen(s) == 0) return 0;
 
     for (int i = 0; s[i]; i++) {
