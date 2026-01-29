@@ -1,9 +1,0 @@
-compile: 
-make mysh
-
-recompile:
-make clean make mysh
-
-running:
-./mysh
-./mysh < testfile.txt
