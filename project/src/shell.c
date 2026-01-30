@@ -54,13 +54,14 @@ int wordEnding(char c) {
 }
 
 int parseInput(char inp[]) {
+    // ---------------- 1.2.4: One-liners --------------------
+    
     char *commands[10];    // max 10 chained commands
-    int num_commands = 0;
+    int num_commands = 0;  // command pointer
 
-    // Split input by semicolon
+    // Split tokens by semicolon and whitespace
     char *token = strtok(inp, ";");
     while (token != NULL && num_commands < 10) {
-        // Skip leading spaces
         while (*token == ' ') token++;
         commands[num_commands++] = token;
         token = strtok(NULL, ";");
@@ -92,10 +93,10 @@ int parseInput(char inp[]) {
 
         errorCode = interpreter(words, w);
 
-        // Free memory allocated by strdup
+        // Free memory
         for (int k = 0; k < w; k++) free(words[k]);
 
-        if (errorCode == -1) return -1;  // quit command
+        if (errorCode == -1) return -1; 
     }
 
     return errorCode;
