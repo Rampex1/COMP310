@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h> 
+#include <string.h>
 #include <unistd.h>
 #include "shell.h"
 #include "interpreter.h"
@@ -10,6 +10,8 @@ int parseInput(char ui[]);
 
 // Start of everything
 int main(int argc, char *argv[]) {
+    setvbuf(stdout, NULL, _IONBF, 0); // disable buffering edge case
+
     printf("Shell version 1.5 created Dec 2025\n");
 
     char prompt = '$';  				// Shell prompt
@@ -22,15 +24,15 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < MAX_USER_INPUT; i++) {
         userInput[i] = '\0';
     }
-    
+
     //init shell memory
     mem_init();
-    while(1) {							
+    while(1) {
         // ---------- 1.2.2: Enhance batch mode execution --------------
         if (interactive) {
             printf("%c ", prompt);
         }
-        // here you should check the unistd library 
+        // here you should check the unistd library
         // so that you can find a way to not display $ in the batch mode
         if (fgets(userInput, MAX_USER_INPUT - 1, stdin) == NULL) {
             // EOF reached
@@ -69,7 +71,8 @@ int parseInput(char inp[]) {
 
     // Execute each command sequentially
     for (int i = 0; i < num_commands; i++) {
-        char tmp[200], *words[100];                            
+        // Now split command into words
+        char tmp[200], *words[100];
         int ix = 0, w = 0;
         int wordlen;
 
@@ -79,13 +82,13 @@ int parseInput(char inp[]) {
         while (cmd[ix] != '\0') {
             // extract a word
             for (wordlen = 0; !wordEnding(cmd[ix]) && cmd[ix] != '\0'; ix++, wordlen++) {
-                tmp[wordlen] = cmd[ix];                        
+                tmp[wordlen] = cmd[ix];
             }
             tmp[wordlen] = '\0';
             words[w] = strdup(tmp);
             w++;
             if (cmd[ix] == '\0') break;
-            ix++; 
+            ix++;
         }
 
         errorCode = interpreter(words, w);
