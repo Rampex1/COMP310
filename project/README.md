@@ -36,10 +36,10 @@ make mysh
 
 ## Test Cases
 All test cases are located in the `test-cases/` directory.
-The executable file `mysh` has been copied over from `src/` into `test-cases/` for simplicity.
-To run a test, use the following command:
+You may copy the executable file `mysh` over from `src/` into `test-cases/inputs` for simplicity.
+To run a test, make sure you are in the same directory as the input files and use the following command:
 ```
-cd test-cases
+cd test-cases/inputs
 ./mysh < [test_name].txt
 ```
 
