@@ -16,6 +16,12 @@ void enqueue(PCB *pcb) {
     }
 }
 
+void enqueue_head(PCB *pcb) {
+    pcb->next = head;
+    head = pcb;
+    if (!tail) tail = pcb;
+}
+
 void enqueue_sjf(PCB *pcb) {
     pcb->next = NULL;
 
@@ -42,6 +48,43 @@ void enqueue_sjf(PCB *pcb) {
 
     if (!pcb->next) {
         tail = pcb;
+    }
+}
+
+void enqueue_aging(PCB *pcb) {
+    pcb->next = NULL;
+
+    if (!head) {
+        head = tail = pcb;
+        return;
+    }
+
+    if (pcb->score < head->score) {
+        pcb->next = head;
+        head = pcb;
+        return;
+    }
+
+    PCB *cur = head;
+    while (cur->next && cur->next->score <= pcb->score) {
+        cur = cur->next;
+    }
+
+    pcb->next = cur->next;
+    cur->next = pcb;
+
+    if (!pcb->next) {
+        tail = pcb;
+    }
+}
+
+void age_queue() {
+    PCB *cur = head;
+    while (cur) {
+        if (cur->score > 0) {
+            cur->score--;
+        }
+        cur = cur->next;
     }
 }
 

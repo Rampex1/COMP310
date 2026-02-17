@@ -18,7 +18,7 @@
 #include <unistd.h>
 #include <errno.h>
 
-int MAX_ARGS_SIZE = 5;
+int MAX_ARGS_SIZE = 6;
 
 int badcommand() {
     printf("Unknown Command\n");
@@ -345,14 +345,25 @@ int my_cd(char *dirname) {
 
 // ---------------- exec --------------------
 int my_exec(char *args[], int args_size) {
-    // args: exec file1 [file2] [file3] POLICY
-    // policy is always last argument
-    char *policy = args[args_size - 1];
-    int num_files = args_size - 2; // subtract "exec" and POLICY
+    // args: exec file1 [file2] [file3] POLICY [#]
+    int background = 0;
+    char *policy;
+    int num_files;
+
+    // Detect # background flag
+    if (strcmp(args[args_size - 1], "#") == 0) {
+        background = 1;
+        policy = args[args_size - 2];
+        num_files = args_size - 3;
+    } else {
+        policy = args[args_size - 1];
+        num_files = args_size - 2;
+    }
 
     // Validate policy
     if (strcmp(policy, "FCFS") != 0 && strcmp(policy, "SJF") != 0 &&
-        strcmp(policy, "RR") != 0 && strcmp(policy, "AGING") != 0) {
+        strcmp(policy, "RR") != 0 && strcmp(policy, "RR30") != 0 &&
+        strcmp(policy, "AGING") != 0) {
         return badcommand();
     }
 
@@ -376,7 +387,6 @@ int my_exec(char *args[], int args_size) {
     for (int i = 0; i < num_files; i++) {
         FILE *fp = fopen(args[i + 1], "rt");
         if (!fp) {
-            // Unload already-loaded programs
             for (int j = 0; j < i; j++) {
                 program_free(starts[j], lengths[j]);
             }
@@ -387,7 +397,6 @@ int my_exec(char *args[], int args_size) {
         fclose(fp);
 
         if (start < 0) {
-            // Unload already-loaded programs
             for (int j = 0; j < i; j++) {
                 program_free(starts[j], lengths[j]);
             }
@@ -395,7 +404,6 @@ int my_exec(char *args[], int args_size) {
             return 1;
         }
 
-        // Count length
         int length = 0;
         for (int k = start; k < MAX_PROGRAM_LINES && program_used[k]; k++) {
             length++;
@@ -405,18 +413,39 @@ int my_exec(char *args[], int args_size) {
         lengths[i] = length;
     }
 
-    // Enqueue phase
+    // Background mode: load remaining stdin as batch script
+    int bg_start = -1, bg_length = 0;
+    if (background) {
+        bg_start = program_load(stdin);
+        if (bg_start >= 0) {
+            for (int k = bg_start; k < MAX_PROGRAM_LINES && program_used[k]; k++) {
+                bg_length++;
+            }
+        }
+    }
+
+    // Enqueue exec'd programs
     for (int i = 0; i < num_files; i++) {
         PCB *pcb = pcb_create(starts[i], lengths[i]);
         if (strcmp(policy, "SJF") == 0) {
             enqueue_sjf(pcb);
+        } else if (strcmp(policy, "AGING") == 0) {
+            enqueue_aging(pcb);
         } else {
             enqueue(pcb);
         }
     }
 
-    // Run phase
-    scheduler_run(policy);
+    // Background mode: insert batch script at head of queue (runs first)
+    if (background && bg_length > 0) {
+        PCB *bg_pcb = pcb_create(bg_start, bg_length);
+        enqueue_head(bg_pcb);
+    }
+
+    // Run phase: skip if scheduler is already active (nested exec)
+    if (!scheduler_active) {
+        scheduler_run(policy);
+    }
 
     return 0;
 }

@@ -6,6 +6,7 @@ typedef struct PCB {
     int start;
     int length;
     int pc;
+    int score;
     struct PCB *next;
 } PCB;
 

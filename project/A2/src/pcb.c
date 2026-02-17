@@ -10,6 +10,7 @@ PCB *pcb_create(int start, int length) {
     pcb->start = start;
     pcb->length = length;
     pcb->pc = 0;
+    pcb->score = length;
     pcb->next = NULL;
 
     return pcb;
