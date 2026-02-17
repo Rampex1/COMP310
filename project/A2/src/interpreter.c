@@ -18,7 +18,7 @@
 #include <unistd.h>
 #include <errno.h>
 
-int MAX_ARGS_SIZE = 3;
+int MAX_ARGS_SIZE = 5;
 
 int badcommand() {
     printf("Unknown Command\n");
@@ -42,6 +42,7 @@ int my_mkdir(char *dirname);
 int my_touch(char *filename);
 int my_cd(char *dirname);
 int run(char *args[], int args_size);
+int my_exec(char *args[], int args_size);
 int badcommandFileDoesNotExist();
 
 // Interpret commands and their arguments
@@ -113,6 +114,11 @@ int interpreter(char *command_args[], int args_size) {
         if (args_size < 2)
             return badcommand();
         return run(command_args, args_size);
+
+    } else if (strcmp(command_args[0], "exec") == 0) {
+        if (args_size < 3)
+            return badcommand();
+        return my_exec(command_args, args_size);
 
     } else
         return badcommand();
@@ -333,6 +339,80 @@ int my_cd(char *dirname) {
         printf("Bad command: my_cd\n");
         return 1;
     }
+
+    return 0;
+}
+
+// ---------------- exec --------------------
+int my_exec(char *args[], int args_size) {
+    // args: exec file1 [file2] [file3] POLICY
+    // policy is always last argument
+    char *policy = args[args_size - 1];
+    int num_files = args_size - 2; // subtract "exec" and POLICY
+
+    // Validate policy
+    if (strcmp(policy, "FCFS") != 0 && strcmp(policy, "SJF") != 0 &&
+        strcmp(policy, "RR") != 0 && strcmp(policy, "AGING") != 0) {
+        return badcommand();
+    }
+
+    if (num_files < 1 || num_files > 3) {
+        return badcommand();
+    }
+
+    // Check for duplicate filenames
+    for (int i = 1; i <= num_files; i++) {
+        for (int j = i + 1; j <= num_files; j++) {
+            if (strcmp(args[i], args[j]) == 0) {
+                printf("Error: Duplicate file name\n");
+                return 1;
+            }
+        }
+    }
+
+    // Load phase: all-or-nothing
+    int starts[3], lengths[3];
+
+    for (int i = 0; i < num_files; i++) {
+        FILE *fp = fopen(args[i + 1], "rt");
+        if (!fp) {
+            // Unload already-loaded programs
+            for (int j = 0; j < i; j++) {
+                program_free(starts[j], lengths[j]);
+            }
+            return badcommandFileDoesNotExist();
+        }
+
+        int start = program_load(fp);
+        fclose(fp);
+
+        if (start < 0) {
+            // Unload already-loaded programs
+            for (int j = 0; j < i; j++) {
+                program_free(starts[j], lengths[j]);
+            }
+            printf("Error: program memory full\n");
+            return 1;
+        }
+
+        // Count length
+        int length = 0;
+        for (int k = start; k < MAX_PROGRAM_LINES && program_used[k]; k++) {
+            length++;
+        }
+
+        starts[i] = start;
+        lengths[i] = length;
+    }
+
+    // Enqueue phase
+    for (int i = 0; i < num_files; i++) {
+        PCB *pcb = pcb_create(starts[i], lengths[i]);
+        enqueue(pcb);
+    }
+
+    // Run phase
+    scheduler_run();
 
     return 0;
 }
