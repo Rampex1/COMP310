@@ -1,4 +1,5 @@
 
+#include <stdlib.h>
 #include "ready_queue.h"
 
 static PCB *head = NULL;

@@ -1,4 +1,5 @@
 import subprocess
+import shutil
 import sys
 from pathlib import Path
 
@@ -81,6 +82,12 @@ for name, expected_name in TESTS:
         print(diff_output)
         FAILED = True
 
+
+# clean up directories created by tests
+for dirname in ["test", "testdir", "toto"]:
+    p = INPUTS / dirname
+    if p.is_dir():
+        shutil.rmtree(p)
 
 if FAILED:
     print("\nSome tests failed.")

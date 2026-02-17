@@ -3,6 +3,9 @@
 #include <string.h>
 #include "shellmemory.h"
 #include "shell.h"
+#include "pcb.h"
+#include "ready_queue.h"
+#include "scheduler.h"
 #include <dirent.h>
 #include <sys/stat.h>
 #include <ctype.h>
