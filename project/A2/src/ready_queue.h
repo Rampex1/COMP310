@@ -4,6 +4,7 @@
 #include "pcb.h"
 
 void enqueue(PCB *pcb);
+void enqueue_sjf(PCB *pcb);
 PCB *dequeue();
 PCB *peek();
 int queue_empty();

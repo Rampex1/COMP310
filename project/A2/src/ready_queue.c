@@ -16,6 +16,35 @@ void enqueue(PCB *pcb) {
     }
 }
 
+void enqueue_sjf(PCB *pcb) {
+    pcb->next = NULL;
+
+    if (!head) {
+        head = tail = pcb;
+        return;
+    }
+
+    // Insert before head if shortest
+    if (pcb->length < head->length) {
+        pcb->next = head;
+        head = pcb;
+        return;
+    }
+
+    // Find insertion point
+    PCB *cur = head;
+    while (cur->next && cur->next->length <= pcb->length) {
+        cur = cur->next;
+    }
+
+    pcb->next = cur->next;
+    cur->next = pcb;
+
+    if (!pcb->next) {
+        tail = pcb;
+    }
+}
+
 PCB *dequeue() {
     if (!head) return NULL;
 

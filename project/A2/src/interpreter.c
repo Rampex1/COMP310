@@ -185,7 +185,7 @@ int source(char *script) {
 
     enqueue(pcb);
 
-    scheduler_run();
+    scheduler_run("FCFS");
 
     return 0;
 }
@@ -408,11 +408,15 @@ int my_exec(char *args[], int args_size) {
     // Enqueue phase
     for (int i = 0; i < num_files; i++) {
         PCB *pcb = pcb_create(starts[i], lengths[i]);
-        enqueue(pcb);
+        if (strcmp(policy, "SJF") == 0) {
+            enqueue_sjf(pcb);
+        } else {
+            enqueue(pcb);
+        }
     }
 
     // Run phase
-    scheduler_run();
+    scheduler_run(policy);
 
     return 0;
 }
