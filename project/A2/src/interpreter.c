@@ -17,8 +17,9 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <errno.h>
+#include <pthread.h>
 
-int MAX_ARGS_SIZE = 6;
+int MAX_ARGS_SIZE = 7;
 
 int badcommand() {
     printf("Unknown Command\n");
@@ -139,6 +140,15 @@ source SCRIPT.TXT	Executes the file SCRIPT.TXT\n ";
 
 int quit() {
     printf("Bye!\n");
+    if (mt_enabled) {
+        // Check if called from a worker thread
+        if (pthread_self() == mt_workers[0] || pthread_self() == mt_workers[1]) {
+            // Called from worker - just return, let workers continue
+            return 0;
+        }
+        // Called from main thread - join workers then exit
+        mt_join_workers();
+    }
     exit(0);
 }
 
@@ -345,20 +355,27 @@ int my_cd(char *dirname) {
 
 // ---------------- exec --------------------
 int my_exec(char *args[], int args_size) {
-    // args: exec file1 [file2] [file3] POLICY [#]
+    // args: exec file1 [file2] [file3] POLICY [#] [MT]
     int background = 0;
+    int mt = 0;
     char *policy;
     int num_files;
 
-    // Detect # background flag
-    if (strcmp(args[args_size - 1], "#") == 0) {
-        background = 1;
-        policy = args[args_size - 2];
-        num_files = args_size - 3;
-    } else {
-        policy = args[args_size - 1];
-        num_files = args_size - 2;
+    // Detect MT flag (always last if present)
+    int last = args_size - 1;
+    if (strcmp(args[last], "MT") == 0) {
+        mt = 1;
+        last--;
     }
+
+    // Detect # background flag
+    if (strcmp(args[last], "#") == 0) {
+        background = 1;
+        last--;
+    }
+
+    policy = args[last];
+    num_files = last - 1; // subtract "exec" (index 0) and policy
 
     // Validate policy
     if (strcmp(policy, "FCFS") != 0 && strcmp(policy, "SJF") != 0 &&
@@ -424,7 +441,9 @@ int my_exec(char *args[], int args_size) {
         }
     }
 
-    // Enqueue exec'd programs
+    // Enqueue exec'd programs (lock mutex if MT workers are running)
+    if (mt_enabled) pthread_mutex_lock(&queue_mutex);
+
     for (int i = 0; i < num_files; i++) {
         PCB *pcb = pcb_create(starts[i], lengths[i]);
         if (strcmp(policy, "SJF") == 0) {
@@ -442,9 +461,18 @@ int my_exec(char *args[], int args_size) {
         enqueue_head(bg_pcb);
     }
 
+    if (mt_enabled) {
+        pthread_cond_broadcast(&work_cond);
+        pthread_mutex_unlock(&queue_mutex);
+    }
+
     // Run phase: skip if scheduler is already active (nested exec)
     if (!scheduler_active) {
-        scheduler_run(policy);
+        if (mt) {
+            scheduler_run_mt(policy);
+        } else {
+            scheduler_run(policy);
+        }
     }
 
     return 0;

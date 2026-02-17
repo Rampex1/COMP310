@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 #include "scheduler.h"
 #include "ready_queue.h"
 #include "shellmemory.h"
@@ -8,6 +9,104 @@
 extern int parseInput(char inp[]);
 
 int scheduler_active = 0;
+
+// MT state
+int mt_enabled = 0;
+pthread_t mt_workers[2];
+pthread_mutex_t queue_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t work_cond = PTHREAD_COND_INITIALIZER;
+static pthread_cond_t all_done_cond = PTHREAD_COND_INITIALIZER;
+static int active_workers = 0;
+static int mt_shutdown = 0;
+static int mt_quantum = 2;
+
+void *worker_thread(void *arg) {
+    (void)arg;
+
+    while (1) {
+        pthread_mutex_lock(&queue_mutex);
+
+        while (queue_empty() && !mt_shutdown) {
+            pthread_cond_wait(&work_cond, &queue_mutex);
+        }
+
+        if (mt_shutdown && queue_empty()) {
+            pthread_mutex_unlock(&queue_mutex);
+            break;
+        }
+
+        if (queue_empty()) {
+            pthread_mutex_unlock(&queue_mutex);
+            continue;
+        }
+
+        PCB *pcb = dequeue();
+        active_workers++;
+        pthread_mutex_unlock(&queue_mutex);
+
+        // Execute quantum instructions
+        int executed = 0;
+        while (pcb->pc < pcb->length && executed < mt_quantum) {
+            char *line = program_memory[pcb->start + pcb->pc];
+            parseInput(line);
+            pcb->pc++;
+            executed++;
+        }
+
+        pthread_mutex_lock(&queue_mutex);
+        active_workers--;
+
+        if (pcb->pc < pcb->length) {
+            enqueue(pcb);
+        } else {
+            program_free(pcb->start, pcb->length);
+            free(pcb);
+        }
+
+        if (queue_empty() && active_workers == 0) {
+            pthread_cond_signal(&all_done_cond);
+        }
+        pthread_cond_broadcast(&work_cond);
+        pthread_mutex_unlock(&queue_mutex);
+    }
+
+    return NULL;
+}
+
+void scheduler_run_mt(char *policy) {
+    mt_quantum = (strcmp(policy, "RR30") == 0) ? 30 : 2;
+    mt_shutdown = 0;
+    active_workers = 0;
+    mt_enabled = 1;
+    scheduler_active = 1;
+
+    pthread_create(&mt_workers[0], NULL, worker_thread, NULL);
+    pthread_create(&mt_workers[1], NULL, worker_thread, NULL);
+
+    // Wake workers and return immediately (non-blocking)
+    pthread_mutex_lock(&queue_mutex);
+    pthread_cond_broadcast(&work_cond);
+    pthread_mutex_unlock(&queue_mutex);
+}
+
+void mt_join_workers() {
+    if (!mt_enabled) return;
+
+    // Wait for all work to finish
+    pthread_mutex_lock(&queue_mutex);
+    while (!queue_empty() || active_workers > 0) {
+        pthread_cond_wait(&all_done_cond, &queue_mutex);
+    }
+    mt_shutdown = 1;
+    pthread_cond_broadcast(&work_cond);
+    pthread_mutex_unlock(&queue_mutex);
+
+    pthread_join(mt_workers[0], NULL);
+    pthread_join(mt_workers[1], NULL);
+
+    mt_enabled = 0;
+    scheduler_active = 0;
+}
 
 void scheduler_run(char *policy) {
 
@@ -72,7 +171,6 @@ void scheduler_run(char *policy) {
         }
     } else {
         // FCFS and SJF: both run each process to completion
-        // (SJF sorts at enqueue time, so queue order is already correct)
         // Dequeue before running so nested exec doesn't corrupt queue head
         while (!queue_empty()) {
             PCB *pcb = dequeue();

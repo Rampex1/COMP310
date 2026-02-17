@@ -5,6 +5,7 @@
 #include "shell.h"
 #include "interpreter.h"
 #include "shellmemory.h"
+#include "scheduler.h"
 
 int parseInput(char ui[]);
 
@@ -35,7 +36,8 @@ int main(int argc, char *argv[]) {
         // here you should check the unistd library
         // so that you can find a way to not display $ in the batch mode
         if (fgets(userInput, MAX_USER_INPUT - 1, stdin) == NULL) {
-            // EOF reached
+            // EOF reached - join MT workers if active
+            mt_join_workers();
             exit(0);
         }
 
@@ -60,11 +62,12 @@ int parseInput(char inp[]) {
     int num_commands = 0;  // command pointer
 
     // Split tokens by semicolon and whitespace
-    char *token = strtok(inp, ";");
+    char *saveptr;
+    char *token = strtok_r(inp, ";", &saveptr);
     while (token != NULL && num_commands < 10) {
         while (*token == ' ') token++;
         commands[num_commands++] = token;
-        token = strtok(NULL, ";");
+        token = strtok_r(NULL, ";", &saveptr);
     }
 
     int errorCode = 0;
