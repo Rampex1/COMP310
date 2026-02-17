@@ -10,6 +10,9 @@ struct memory_struct {
 
 struct memory_struct shellmemory[MEM_SIZE];
 
+char *program_memory[MAX_PROGRAM_LINES];
+int program_used[MAX_PROGRAM_LINES];
+
 // Helper functions
 int match(char *model, char *var) {
     int i, len = strlen(var), matchCount = 0;
@@ -28,6 +31,11 @@ void mem_init(){
     for (i = 0; i < MEM_SIZE; i++){		
         shellmemory[i].var   = "none";
         shellmemory[i].value = "none";
+    }
+
+    for (int i = 0; i < MAX_PROGRAM_LINES; i++) {
+        program_memory[i] = NULL;
+        program_used[i] = 0;
     }
 }
 
@@ -64,4 +72,44 @@ char *mem_get_value(char *var_in) {
         } 
     }
     return "Variable does not exist";
+}
+
+int program_load(FILE *fp) {
+    char line[MAX_LINE_LENGTH];
+    int start = -1;
+    int count = 0;
+
+    for (int i = 0; i < MAX_PROGRAM_LINES; i++) {
+        if (!program_used[i]) {
+            start = i;
+            break;
+        }
+    }
+
+    if (start == -1) return -1;
+
+    int idx = start;
+
+    while (fgets(line, MAX_LINE_LENGTH, fp)) {
+        if (idx >= MAX_PROGRAM_LINES) return -1;
+
+        program_memory[idx] = strdup(line);
+        program_used[idx] = 1;
+
+        idx++;
+        count++;
+    }
+
+    return start; // return starting index
+}
+
+
+void program_free(int start, int length) {
+    for (int i = start; i < start + length; i++) {
+        if (program_used[i]) {
+            free(program_memory[i]);
+            program_memory[i] = NULL;
+            program_used[i] = 0;
+        }
+    }
 }

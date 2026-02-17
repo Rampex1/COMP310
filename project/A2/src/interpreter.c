@@ -153,28 +153,32 @@ int print(char *var) {
 }
 
 int source(char *script) {
-    int errCode = 0;
-    char line[MAX_USER_INPUT];
-    FILE *p = fopen(script, "rt");      // the program is in a file
 
-    if (p == NULL) {
-        return badcommandFileDoesNotExist();
+    FILE *fp = fopen(script, "rt");
+    if (!fp) return badcommandFileDoesNotExist();
+
+    // Count lines + load program
+    int start = program_load(fp);
+    fclose(fp);
+
+    if (start < 0) {
+        printf("Error: program memory full\n");
+        return 1;
     }
 
-    fgets(line, MAX_USER_INPUT - 1, p);
-    while (1) {
-        errCode = parseInput(line);     // which calls interpreter()
-        memset(line, 0, sizeof(line));
-
-        if (feof(p)) {
-            break;
-        }
-        fgets(line, MAX_USER_INPUT - 1, p);
+    // Count length
+    int length = 0;
+    for (int i = start; i < MAX_PROGRAM_LINES && program_used[i]; i++) {
+        length++;
     }
 
-    fclose(p);
+    PCB *pcb = pcb_create(start, length);
 
-    return errCode;
+    enqueue(pcb);
+
+    scheduler_run();
+
+    return 0;
 }
 
 // --------------- 1.2.1: Add the echo command ---------------------------
