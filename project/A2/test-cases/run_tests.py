@@ -43,11 +43,18 @@ def sh(cmd, cwd=None):
     )
 
 
+def cleanup_test_dirs():
+    for dirname in ["test", "testdir", "toto"]:
+        p = INPUTS / dirname
+        if p.is_dir():
+            shutil.rmtree(p)
+
+
 def run_test(input_file, expected_file):
     out_file = input_file.with_suffix(".out")
 
     with input_file.open("r") as fin, out_file.open("w") as fout:
-        subprocess.run([str(SHELL)], stdin=fin, stdout=fout)
+        subprocess.run([str(SHELL)], stdin=fin, stdout=fout, cwd=INPUTS)
 
     diff = sh(f"diff -Bw {out_file} {expected_file}")
     return diff.returncode == 0, diff.stdout
@@ -60,6 +67,9 @@ build = sh("make clean && make mysh", cwd=SRC)
 if build.returncode != 0:
     print(build.stderr)
     sys.exit(1)
+
+# clean up before running (in case previous run left dirs behind)
+cleanup_test_dirs()
 
 # run tests
 for name, expected_name in TESTS:
@@ -84,10 +94,7 @@ for name, expected_name in TESTS:
 
 
 # clean up directories created by tests
-for dirname in ["test", "testdir", "toto"]:
-    p = INPUTS / dirname
-    if p.is_dir():
-        shutil.rmtree(p)
+cleanup_test_dirs()
 
 if FAILED:
     print("\nSome tests failed.")
