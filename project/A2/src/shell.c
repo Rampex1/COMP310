@@ -29,7 +29,6 @@ int main(int argc, char *argv[]) {
     //init shell memory
     mem_init();
     while(1) {
-        // ---------- 1.2.2: Enhance batch mode execution --------------
         if (interactive) {
             printf("%c ", prompt);
         }
@@ -56,8 +55,6 @@ int wordEnding(char c) {
 }
 
 int parseInput(char inp[]) {
-    // ---------------- 1.2.4: One-liners --------------------
-    
     char *commands[10];    // max 10 chained commands
     int num_commands = 0;  // command pointer
 

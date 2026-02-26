@@ -74,6 +74,7 @@ char *mem_get_value(char *var_in) {
     return "Variable does not exist";
 }
 
+// ----------- 1.2.1- Code loading  ----------------
 int program_load(FILE *fp) {
     char line[MAX_LINE_LENGTH];
     int start = -1;
@@ -89,7 +90,6 @@ int program_load(FILE *fp) {
     if (start == -1) return -1;
 
     int idx = start;
-
     while (fgets(line, MAX_LINE_LENGTH, fp)) {
         if (idx >= MAX_PROGRAM_LINES) return -1;
 

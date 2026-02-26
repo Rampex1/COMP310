@@ -20,6 +20,7 @@ static int active_workers = 0;
 static int mt_shutdown = 0;
 static int mt_quantum = 2;
 
+// ---------------- 1.2.6 - Multithreaded scheduler --------------
 void *worker_thread(void *arg) {
     (void)arg;
 
@@ -108,16 +109,21 @@ void mt_join_workers() {
     scheduler_active = 0;
 }
 
+// --------------------- 1.2.1 Scheduler Logic --------------
 void scheduler_run(char *policy) {
 
     scheduler_active = 1;
-
+    
+    // ----------------- 1.2.3 - Round Robin Policy ----------------------
+    // ----------------- 1.2.5 - Background Mode ----------------------
     if (strcmp(policy, "RR") == 0 || strcmp(policy, "RR30") == 0) {
         int quantum = (strcmp(policy, "RR30") == 0) ? 30 : 2;
 
+        // Process Selection
         while (!queue_empty()) {
             PCB *pcb = dequeue();
-
+            
+            // Instruction execution
             int executed = 0;
             while (pcb->pc < pcb->length && executed < quantum) {
                 char *line = program_memory[pcb->start + pcb->pc];
@@ -126,21 +132,20 @@ void scheduler_run(char *policy) {
                 executed++;
             }
 
+            // Post execution
             if (pcb->pc < pcb->length) {
-                // Not finished, re-enqueue
-                enqueue(pcb);
+                enqueue(pcb);  // Not finished
             } else {
-                // Finished
                 program_free(pcb->start, pcb->length);
-                free(pcb);
+                free(pcb); 
             }
         }
+    // ----------------- 1.2.4 - SJF with Aging Policy -----------------------
     } else if (strcmp(policy, "AGING") == 0) {
-        // SJF with Aging: quantum of 1, age waiting jobs each slice
         PCB *current = dequeue();
 
         while (current) {
-            // Execute 1 instruction
+            // Execute one instruction
             char *line = program_memory[current->start + current->pc];
             parseInput(line);
             current->pc++;
@@ -149,29 +154,24 @@ void scheduler_run(char *policy) {
                 // Current job finished
                 program_free(current->start, current->length);
                 free(current);
-
-                // Age remaining queue
                 age_queue();
-
-                // Get next job
                 current = dequeue();
             } else {
-                // Age waiting jobs
                 age_queue();
 
                 // Check if head of queue has strictly lower score
+                // Otherwise current continues
                 PCB *head_pcb = peek();
                 if (head_pcb && head_pcb->score < current->score) {
-                    // Promotion: put current back, switch to new head
+                    // Put current back, switch to new head
                     enqueue_aging(current);
                     current = dequeue();
                 }
-                // Otherwise current continues
             }
         }
     } else {
-        // FCFS and SJF: both run each process to completion
-        // Dequeue before running so nested exec doesn't corrupt queue head
+        // -------------- 1.2.3 - SJF ---------------------------
+        // Also FCFS Policy
         while (!queue_empty()) {
             PCB *pcb = dequeue();
 

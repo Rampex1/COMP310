@@ -5,6 +5,7 @@
 static PCB *head = NULL;
 static PCB *tail = NULL;
 
+// -------------------- 1.2.1 - Ready Queue  ---------------------
 void enqueue(PCB *pcb) {
     pcb->next = NULL;
 

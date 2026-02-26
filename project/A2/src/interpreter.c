@@ -176,7 +176,7 @@ int source(char *script) {
     FILE *fp = fopen(script, "rt");
     if (!fp) return badcommandFileDoesNotExist();
 
-    // Count lines + load program
+    // Load program
     int start = program_load(fp);
     fclose(fp);
 
@@ -185,22 +185,19 @@ int source(char *script) {
         return 1;
     }
 
-    // Count length
+    // Create Procss Control Block
     int length = 0;
     for (int i = start; i < MAX_PROGRAM_LINES && program_used[i]; i++) {
         length++;
     }
 
     PCB *pcb = pcb_create(start, length);
-
     enqueue(pcb);
-
     scheduler_run("FCFS");
 
     return 0;
 }
 
-// --------------- 1.2.1: Add the echo command ---------------------------
 int echo(char *var) {
     if (var[0] == '$') {
         // Case 1: Skip $ and look for variable
@@ -219,7 +216,6 @@ int echo(char *var) {
     return 0;
 }
 
-// ---------------- 1.2.3: my_ls --------------------
 int cmpstringp(const void *p1, const void *p2) {
     /* 
      *   Wrapper for qsort to compare two *char array elements
@@ -260,7 +256,6 @@ int my_ls() {
     return 0;
 }
 
-// ---------------- 1.2.3: my_mkdir --------------------
 int is_alphanumeric_string(char *s) {
     /* 
      * Helper function that verifies string is alphanumeric 
@@ -309,7 +304,6 @@ int my_mkdir(char *dirname) {
     return 0;
 }
 
-// ---------------- 1.2.3: my_touch --------------------
 int my_touch(char *filename) {
     // Check validity
     if (!is_alphanumeric_string(filename)) {
@@ -328,7 +322,6 @@ int my_touch(char *filename) {
     return 0;
 }
 
-// ---------------- 1.2.3: my_cd --------------------
 int my_cd(char *dirname) {
     // Verify validity
     if (!is_alphanumeric_string(dirname)) {
@@ -353,9 +346,9 @@ int my_cd(char *dirname) {
     return 0;
 }
 
-// ---------------- exec --------------------
+// -------------- 1.2.2 - Exec Command --------------------
 int my_exec(char *args[], int args_size) {
-    // args: exec file1 [file2] [file3] POLICY [#] [MT]
+    // usage: exec file1 [file2] [file3] POLICY [#] [MT]
     int background = 0;
     int mt = 0;
     char *policy;
@@ -375,7 +368,7 @@ int my_exec(char *args[], int args_size) {
     }
 
     policy = args[last];
-    num_files = last - 1; // subtract "exec" (index 0) and policy
+    num_files = last - 1;
 
     // Validate policy
     if (strcmp(policy, "FCFS") != 0 && strcmp(policy, "SJF") != 0 &&
@@ -398,7 +391,7 @@ int my_exec(char *args[], int args_size) {
         }
     }
 
-    // Load phase: all-or-nothing
+    // Loading
     int starts[3], lengths[3];
 
     for (int i = 0; i < num_files; i++) {
@@ -429,8 +422,9 @@ int my_exec(char *args[], int args_size) {
         starts[i] = start;
         lengths[i] = length;
     }
-
-    // Background mode: load remaining stdin as batch script
+    
+    // ------------------- 1.2.5 - Background Mode ---------------------
+    // Load remaining stdin as batch script
     int bg_start = -1, bg_length = 0;
     if (background) {
         bg_start = program_load(stdin);
@@ -466,7 +460,7 @@ int my_exec(char *args[], int args_size) {
         pthread_mutex_unlock(&queue_mutex);
     }
 
-    // Run phase: skip if scheduler is already active (nested exec)
+    // Run phase: skip if scheduler is already active 
     if (!scheduler_active) {
         if (mt) {
             scheduler_run_mt(policy);
@@ -478,7 +472,6 @@ int my_exec(char *args[], int args_size) {
     return 0;
 }
 
-// ---------------- 1.2.5: run --------------------
 int run(char *args[], int args_size) {
     // Fork new process
     pid_t pid = fork();
