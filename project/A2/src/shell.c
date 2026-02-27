@@ -9,7 +9,6 @@
 
 int parseInput(char ui[]);
 
-// Start of everything
 int main(int argc, char *argv[]) {
     setvbuf(stdout, NULL, _IONBF, 0); // disable buffering edge case
 
@@ -49,8 +48,6 @@ int main(int argc, char *argv[]) {
 }
 
 int wordEnding(char c) {
-    // You may want to add ';' to this at some point,
-    // or you may want to find a different way to implement chains.
     return c == '\0' || c == '\n' || c == ' ';
 }
 
@@ -69,7 +66,6 @@ int parseInput(char inp[]) {
 
     int errorCode = 0;
 
-    // Execute each command sequentially
     for (int i = 0; i < num_commands; i++) {
         // Now split command into words
         char tmp[200], *words[100];
@@ -90,13 +86,9 @@ int parseInput(char inp[]) {
             if (cmd[ix] == '\0') break;
             ix++;
         }
-
         errorCode = interpreter(words, w);
-
-        // Free memory
         for (int k = 0; k < w; k++) free(words[k]);
-
-        if (errorCode == -1) return -1; 
+        if (errorCode == -1) return -1;
     }
 
     return errorCode;

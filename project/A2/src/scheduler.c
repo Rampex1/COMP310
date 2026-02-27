@@ -113,7 +113,7 @@ void mt_join_workers() {
 void scheduler_run(char *policy) {
 
     scheduler_active = 1;
-    
+
     // ----------------- 1.2.3 - Round Robin Policy ----------------------
     // ----------------- 1.2.5 - Background Mode ----------------------
     if (strcmp(policy, "RR") == 0 || strcmp(policy, "RR30") == 0) {
@@ -122,7 +122,7 @@ void scheduler_run(char *policy) {
         // Process Selection
         while (!queue_empty()) {
             PCB *pcb = dequeue();
-            
+
             // Instruction execution
             int executed = 0;
             while (pcb->pc < pcb->length && executed < quantum) {
@@ -137,7 +137,7 @@ void scheduler_run(char *policy) {
                 enqueue(pcb);  // Not finished
             } else {
                 program_free(pcb->start, pcb->length);
-                free(pcb); 
+                free(pcb);
             }
         }
     // ----------------- 1.2.4 - SJF with Aging Policy -----------------------
@@ -175,12 +175,14 @@ void scheduler_run(char *policy) {
         while (!queue_empty()) {
             PCB *pcb = dequeue();
 
+            // run process to completion, feed each line to PARSE input
             while (pcb->pc < pcb->length) {
                 char *line = program_memory[pcb->start + pcb->pc];
                 parseInput(line);
                 pcb->pc++;
             }
 
+            // cleanup step, free program lines + pcb itself
             program_free(pcb->start, pcb->length);
             free(pcb);
         }

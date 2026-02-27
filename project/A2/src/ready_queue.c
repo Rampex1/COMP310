@@ -5,7 +5,7 @@
 static PCB *head = NULL;
 static PCB *tail = NULL;
 
-// -------------------- 1.2.1 - Ready Queue  ---------------------
+// --------- 1.2.1 - Ready Queue  ---------------------
 void enqueue(PCB *pcb) {
     pcb->next = NULL;
 
@@ -31,19 +31,18 @@ void enqueue_sjf(PCB *pcb) {
         return;
     }
 
-    // Insert before head if shortest
+    // insert before head, if shortest
     if (pcb->length < head->length) {
         pcb->next = head;
         head = pcb;
         return;
     }
 
-    // Find insertion point
+    // find insertion pt
     PCB *cur = head;
     while (cur->next && cur->next->length <= pcb->length) {
         cur = cur->next;
     }
-
     pcb->next = cur->next;
     cur->next = pcb;
 
@@ -60,6 +59,7 @@ void enqueue_aging(PCB *pcb) {
         return;
     }
 
+    // again insert head if shortest score
     if (pcb->score < head->score) {
         pcb->next = head;
         head = pcb;
@@ -70,7 +70,6 @@ void enqueue_aging(PCB *pcb) {
     while (cur->next && cur->next->score <= pcb->score) {
         cur = cur->next;
     }
-
     pcb->next = cur->next;
     cur->next = pcb;
 

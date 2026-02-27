@@ -87,7 +87,7 @@ int interpreter(char *command_args[], int args_size) {
         return source(command_args[1]);
 
     } else if (strcmp(command_args[0], "echo") == 0) {
-        if (args_size != 2) 
+        if (args_size != 2)
             return badcommand();
         return echo(command_args[1]);
 
@@ -110,7 +110,7 @@ int interpreter(char *command_args[], int args_size) {
         if (args_size != 2)
             return badcommand();
         return my_cd(command_args[1]);
-    
+
     } else if (strcmp(command_args[0], "run") == 0) {
         if (args_size < 2)
             return badcommand();
@@ -143,24 +143,14 @@ int quit() {
     if (mt_enabled) {
         // Check if called from a worker thread
         if (pthread_self() == mt_workers[0] || pthread_self() == mt_workers[1]) {
-            // Called from worker - just return, let workers continue
             return 0;
         }
-        // Called from main thread - join workers then exit
         mt_join_workers();
     }
     exit(0);
 }
 
 int set(char *var, char *value) {
-    // Challenge: allow setting VAR to the rest of the input line,
-    // possibly including spaces.
-
-    // Hint: Since "value" might contain multiple tokens, you'll need to loop
-    // through them, concatenate each token to the buffer, and handle spacing
-    // appropriately. Investigate how `strcat` works and how you can use it
-    // effectively here.
-
     mem_set_value(var, value);
     return 0;
 }
@@ -203,7 +193,7 @@ int echo(char *var) {
         // Case 1: Skip $ and look for variable
         char *var_name = var + 1;
         char *value = mem_get_value(var_name);
-        
+
         if (strcmp(value, "Variable does not exist") == 0) {
             printf("\n");
         } else {
@@ -217,7 +207,7 @@ int echo(char *var) {
 }
 
 int cmpstringp(const void *p1, const void *p2) {
-    /* 
+    /*
      *   Wrapper for qsort to compare two *char array elements
      */
     char *const *s1 = p1;
@@ -257,8 +247,8 @@ int my_ls() {
 }
 
 int is_alphanumeric_string(char *s) {
-    /* 
-     * Helper function that verifies string is alphanumeric 
+    /*
+     * Helper function that verifies string is alphanumeric
      */
     if (s == NULL || strlen(s) == 0) return 0;
 
@@ -272,10 +262,10 @@ int my_mkdir(char *dirname) {
     char final_name[256];
 
     if (dirname[0] == '$') {
-        // Case 1: Variable 
+        // Case 1: Variable
         char *varname = dirname + 1; // Skip $
         char *value = mem_get_value(varname);
-        
+
         // Check validity
         if (strcmp(value, "Variable does not exist") == 0 ||
             !is_alphanumeric_string(value)) {
@@ -284,7 +274,7 @@ int my_mkdir(char *dirname) {
         }
 
         strcpy(final_name, value);
-    } 
+    }
     else {
         // Case 2: Literal value
         if (!is_alphanumeric_string(dirname)) {
@@ -377,11 +367,10 @@ int my_exec(char *args[], int args_size) {
         return badcommand();
     }
 
+    // validate files and check if duplicates exist
     if (num_files < 1 || num_files > 3) {
         return badcommand();
     }
-
-    // Check for duplicate filenames
     for (int i = 1; i <= num_files; i++) {
         for (int j = i + 1; j <= num_files; j++) {
             if (strcmp(args[i], args[j]) == 0) {
@@ -422,7 +411,7 @@ int my_exec(char *args[], int args_size) {
         starts[i] = start;
         lengths[i] = length;
     }
-    
+
     // ------------------- 1.2.5 - Background Mode ---------------------
     // Load remaining stdin as batch script
     int bg_start = -1, bg_length = 0;
@@ -434,10 +423,10 @@ int my_exec(char *args[], int args_size) {
             }
         }
     }
-
     // Enqueue exec'd programs (lock mutex if MT workers are running)
     if (mt_enabled) pthread_mutex_lock(&queue_mutex);
 
+    // create a pcb for each processes and enques them using the correctly mapped function
     for (int i = 0; i < num_files; i++) {
         PCB *pcb = pcb_create(starts[i], lengths[i]);
         if (strcmp(policy, "SJF") == 0) {
@@ -460,8 +449,8 @@ int my_exec(char *args[], int args_size) {
         pthread_mutex_unlock(&queue_mutex);
     }
 
-    // Run phase: skip if scheduler is already active 
-    if (!scheduler_active) {
+    // Run phase: skip if scheduler is already active
+    if (!scheduler_active) { // meaning not inside a nested exec
         if (mt) {
             scheduler_run_mt(policy);
         } else {
@@ -482,7 +471,7 @@ int run(char *args[], int args_size) {
         return 1;
     }
     else if (pid == 0) {
-        // Case 2: Child process 
+        // Case 2: Child process
         char *cmd_args[args_size];
         for (int i = 1; i < args_size; i++) {
             cmd_args[i - 1] = args[i];
@@ -497,7 +486,7 @@ int run(char *args[], int args_size) {
     else {
         // Case 3: Parent process
         int status;
-        waitpid(pid, &status, 0); 
+        waitpid(pid, &status, 0);
     }
 
     return 0;
