@@ -12,3 +12,6 @@ Starter Code:
 
 Implementation Notes:
   - Multithreaded scheduler (MT) tests are non-deterministic, so we did not take into account the order of the results.
+
+Link to Video explainer:
+https://youtu.be/S0lZcHjb9II
