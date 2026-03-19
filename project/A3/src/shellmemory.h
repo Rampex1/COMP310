@@ -23,10 +23,13 @@ char *mem_get_value(char *var);
 void mem_set_value(char *var, char *value);
 
 extern char *frame_store[FRAME_STORE_SIZE];
-extern int frame_used[NUM_FRAMES];
+extern int   frame_used[NUM_FRAMES];
 
-// Allocate one frame: stores `count` lines (count <= PAGE_SIZE).
-// Returns the frame index, or -1 if the frame store is full.
+// Allocate one free frame with the given lines (count <= PAGE_SIZE).
+// Returns frame index on success, or -1 if the frame store is full.
 int frame_alloc(char **lines, int count);
+
+// Release a frame back to the free pool (frees its strings).
+void frame_free(int frame);
 
 #endif
