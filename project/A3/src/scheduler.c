@@ -21,13 +21,14 @@ static int active_workers = 0;
 static int mt_shutdown    = 0;
 static int mt_quantum     = 2;
 
-// Translate logical PC to a frame_store pointer.
+// Translate logical PC to a frame_store pointer and update LRU.
 // Returns NULL if the page is not loaded (page fault required).
 static char *get_line(PCB *pcb, int pc) {
     int page   = pc / PAGE_SIZE;
     int offset = pc % PAGE_SIZE;
     int frame  = pcb->script->page_table[page];
     if (frame == -1) return NULL;  // page not in memory
+    frame_touch(frame);            // record this frame as most recently used
     return frame_store[frame * PAGE_SIZE + offset];
 }
 

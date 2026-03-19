@@ -50,8 +50,8 @@ int load_page_from_script(ScriptInfo *script, int page_idx) {
     int frame = frame_alloc(page_lines, count);
 
     if (frame < 0) {
-        // Frame store is full: pick a random victim
-        int victim = rand() % NUM_FRAMES;
+        // Frame store is full: evict the least recently used frame
+        int victim = frame_lru_victim();
 
         printf("Page fault! Victim page contents:\n\n");
         // Print from backing store (unmodified by parseInput)

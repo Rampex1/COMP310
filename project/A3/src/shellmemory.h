@@ -32,4 +32,11 @@ int frame_alloc(char **lines, int count);
 // Release a frame back to the free pool (frees its strings).
 void frame_free(int frame);
 
+// LRU tracking
+extern int frame_lru[NUM_FRAMES]; // last-use timestamp per frame
+extern int lru_clock;             // global monotonic counter
+
+void frame_touch(int frame);      // record frame as most recently used
+int  frame_lru_victim(void);      // return index of LRU (least recently used) frame
+
 #endif
